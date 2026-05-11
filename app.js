@@ -620,6 +620,37 @@ function wireUi() {
   });
   $('#t-weekends-only').addEventListener('change', renderScheduleTable);
   $('#t-resupply-only').addEventListener('change', renderScheduleTable);
+  wireMobileDrawer();
+}
+
+function wireMobileDrawer() {
+  const sidebar = $('#sidebar');
+  const backdrop = $('#sidebar-backdrop');
+  const toggle = $('#menu-toggle');
+  const open = () => {
+    sidebar.classList.add('open');
+    backdrop.removeAttribute('hidden');
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+    toggle.setAttribute('aria-expanded', 'true');
+  };
+  const close = () => {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('show');
+    toggle.setAttribute('aria-expanded', 'false');
+    setTimeout(() => backdrop.setAttribute('hidden', ''), 240);
+  };
+  toggle.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? close() : open();
+  });
+  backdrop.addEventListener('click', close);
+  // Close when picking a waypoint or table row (we navigate the map under it)
+  $('#wp-list').addEventListener('click', (e) => {
+    if (e.target.closest('li[data-mile]') && sidebar.classList.contains('open')) close();
+  });
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+  });
 }
 
 // ---------- init ----------
