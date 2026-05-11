@@ -75,6 +75,7 @@
         <label><input type="checkbox" id="f-waypoints" checked /> Resupply / road access</label>
         <label><input type="checkbox" id="f-weekends"  checked /> Weekend positions (Sat/Sun)</label>
         <label><input type="checkbox" id="f-airports"  checked /> Airports</label>
+        <label><input type="checkbox" id="f-water" /> Water sources (PCT Water Report)</label>
         <label><input type="checkbox" id="f-expected"  checked /> Where she should be today</label>
         <label><input type="checkbox" id="f-actual"    checked /> Last reported position</label>
         <label><input type="checkbox" id="f-progress-line" checked /> Progress overlay (covered miles)</label>
@@ -95,6 +96,7 @@
           <li><span class="dot covered"></span> Miles covered</li>
           <li><span class="dot resupply"></span> Resupply / road access</li>
           <li><span class="dot weekend"></span> Weekend (Sat / Sun)</li>
+          <li><span class="dot water"></span> Water source (last reported)</li>
           <li><span class="dot airport"></span> Airport</li>
           <li><span class="dot expected"></span> Expected position today</li>
           <li><span class="dot actual"></span> Last reported position</li>
@@ -113,6 +115,8 @@
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="data/trail-data.js"></script>
   <script src="data/waypoints-data.js"></script>
+  <script src="data/water-waypoints.js"></script>
+  <script src="data/water-loader.js"></script>
   <script src="data/progress.js"></script>
   <script src="app.js"></script>
   <script>
