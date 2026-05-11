@@ -243,16 +243,36 @@ function waypointIcon(wp, isPassed, isCurrent) {
 
 function waypointPopup(wp) {
   const exp = parseDate(wp.date);
-  return `
-    <h3>${wp.name}</h3>
+  const planDate = exp.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+
+  let html = `<h3>${escapeHtml(wp.name)}</h3>
     <dl class="kv">
       <dt>Mile</dt><dd>${wp.mile.toFixed(1)}</dd>
-      <dt>Plan day</dt><dd>${wp.day} (${exp.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})})</dd>
-      <dt>Road</dt><dd>${wp.road}</dd>
-      <dt>Off-trail</dt><dd>${wp.offTrail}</dd>
+      <dt>Plan day</dt><dd>${wp.day} (${planDate})</dd>
+      <dt>Road</dt><dd>${escapeHtml(wp.road)}</dd>
+      <dt>Off-trail</dt><dd>${escapeHtml(wp.offTrail)}</dd>
       <dt>Airport</dt><dd>${wp.airport}</dd>
-      <dt>Drive</dt><dd>${wp.drive}</dd>
+      <dt>Drive</dt><dd>${escapeHtml(wp.drive)}</dd>
     </dl>`;
+
+  const r = wp.resupply || {};
+  const hasResupply = r.postOffice || r.lodging || r.groceries || r.hikerBox || r.shuttle || r.notes;
+  if (hasResupply) {
+    html += `<h4 class="popup-h">Resupply</h4><dl class="kv">`;
+    if (r.postOffice) html += `<dt>Post office</dt><dd>${escapeHtml(r.postOffice)}</dd>`;
+    if (r.lodging)    html += `<dt>Lodging</dt><dd>${escapeHtml(r.lodging)}</dd>`;
+    if (r.groceries)  html += `<dt>Groceries</dt><dd>${escapeHtml(r.groceries)}</dd>`;
+    if (r.hikerBox)   html += `<dt>Hiker box</dt><dd>${escapeHtml(r.hikerBox)}</dd>`;
+    if (r.shuttle)    html += `<dt>Shuttle</dt><dd>${escapeHtml(r.shuttle)}</dd>`;
+    if (r.notes)      html += `<dt>Note</dt><dd>${escapeHtml(r.notes)}</dd>`;
+    html += `</dl>`;
+  }
+  if (Array.isArray(wp.sources) && wp.sources.length) {
+    html += `<p class="popup-src">Source: ${wp.sources.map(s =>
+      `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.label)}</a>`
+    ).join(', ')}</p>`;
+  }
+  return html;
 }
 
 function drawWaypoints() {
