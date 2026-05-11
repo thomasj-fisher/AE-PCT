@@ -1,0 +1,18 @@
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*~
+.vscode/
+.idea/
+
+# Claude Code local state — user-specific, never commit
+.claude/
+
+# Unrelated files that happen to live in this directory.
+# Move them out or delete these lines if any should be tracked.
+score_names.py
+test_batch.py
+pct_2600_milers.csv
+pct_cypriot_scores.csv

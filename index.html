@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Athena's PCT 2026</title>
+  <meta name="theme-color" content="#161a22" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="layout">
+    <div id="main">
+      <nav id="tabs" role="tablist">
+        <button class="tab-btn active" data-tab="map" role="tab" aria-selected="true">Map</button>
+        <button class="tab-btn"        data-tab="table" role="tab" aria-selected="false">Table</button>
+      </nav>
+      <div id="tab-panes">
+        <div id="map" class="tab-pane active" role="tabpanel"></div>
+        <div id="table-view" class="tab-pane" role="tabpanel" hidden>
+          <div id="table-controls">
+            <label><input type="checkbox" id="t-weekends-only" /> Weekends only</label>
+            <label><input type="checkbox" id="t-resupply-only" /> Resupply days only</label>
+            <span class="muted small" id="table-summary"></span>
+          </div>
+          <div id="table-scroll">
+            <table id="schedule-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Date</th>
+                  <th>DoW</th>
+                  <th>Day starts</th>
+                  <th>Day ends</th>
+                  <th>Closest road</th>
+                  <th>Off-trail</th>
+                  <th>Airport</th>
+                  <th>Drive</th>
+                  <th>Actual</th>
+                  <th>Δ days</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside id="sidebar">
+      <header>
+        <h1>Athena's PCT 2026</h1>
+        <p class="sub">13 May → ~20 Sep · 2,655.2 mi · 130-day plan</p>
+      </header>
+
+      <section id="today-card">
+        <h2>Today</h2>
+        <div id="today-body" class="muted">Loading…</div>
+      </section>
+
+      <section id="progress-card">
+        <h2>Latest progress</h2>
+        <div id="progress-body" class="muted small">Loading…</div>
+        <p class="muted small" style="margin-top:8px">Ask Claude Code to update <code>data/progress.js</code> when you get news.</p>
+      </section>
+
+      <section id="filter-card">
+        <h2>Show on map</h2>
+        <label><input type="checkbox" id="f-trail"     checked /> Trail</label>
+        <label><input type="checkbox" id="f-waypoints" checked /> Resupply / road access</label>
+        <label><input type="checkbox" id="f-weekends"  checked /> Weekend positions (Sat/Sun)</label>
+        <label><input type="checkbox" id="f-airports"  checked /> Airports</label>
+        <label><input type="checkbox" id="f-expected"  checked /> Where she should be today</label>
+        <label><input type="checkbox" id="f-actual"    checked /> Last reported position</label>
+        <label><input type="checkbox" id="f-progress-line" checked /> Progress overlay (covered miles)</label>
+      </section>
+
+      <section id="waypoints-card">
+        <h2>Waypoints</h2>
+        <div class="search-row">
+          <input type="search" id="wp-search" placeholder="Filter waypoints…" />
+        </div>
+        <ol id="wp-list"></ol>
+      </section>
+
+      <section id="legend-card">
+        <h2>Legend</h2>
+        <ul class="legend">
+          <li><span class="dot trail"></span> PCT trail</li>
+          <li><span class="dot covered"></span> Miles covered</li>
+          <li><span class="dot resupply"></span> Resupply / road access</li>
+          <li><span class="dot weekend"></span> Weekend (Sat / Sun)</li>
+          <li><span class="dot airport"></span> Airport</li>
+          <li><span class="dot expected"></span> Expected position today</li>
+          <li><span class="dot actual"></span> Last reported position</li>
+        </ul>
+      </section>
+
+      <footer>
+        <p class="muted small">Trail data from 101 Outdooractive GPX stages (1-in-5 decimation).
+          Schedule from Yogi's <em>Hiking the Pacific Crest Trail</em> 130-day plan, +3 days.
+          Progress lives in <code>data/progress.js</code>.</p>
+      </footer>
+    </aside>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="data/trail-data.js"></script>
+  <script src="data/waypoints-data.js"></script>
+  <script src="data/progress.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((err) =>
+          console.warn('SW registration failed:', err)
+        );
+      });
+    }
+  </script>
+</body>
+</html>
