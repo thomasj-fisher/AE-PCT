@@ -1,9 +1,9 @@
 // Service worker for Athena's PCT tracker
-// Caches the app shell so the page loads with no signal.
-// Tile requests bypass the cache (always go to network).
-// data/progress.js is network-first so Athena sees latest updates after refresh.
+// Network-first strategy for the app shell: when online, the latest version
+// always wins (no stale HTML/JS mismatches). Cache is the offline fallback.
+// Tile requests are never intercepted — they always go to network.
 
-const CACHE = 'pct-tracker-v2';
+const CACHE = 'pct-tracker-v3';
 
 const APP_SHELL = [
   './',
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
-  // Map tiles: always network, never intercept.
+  // Map tiles: never intercept.
   if (
     url.hostname.endsWith('tile.openstreetmap.org') ||
     url.hostname.endsWith('tile.opentopomap.org')
@@ -53,33 +53,16 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Progress file: network-first so updates show immediately when online.
-  if (url.pathname.endsWith('/data/progress.js')) {
-    e.respondWith(
-      fetch(e.request)
-        .then((resp) => {
+  // Network-first for everything else: fetch the latest, fall back to cache offline.
+  e.respondWith(
+    fetch(e.request)
+      .then((resp) => {
+        if (resp && resp.status === 200 && resp.type !== 'opaque') {
           const clone = resp.clone();
           caches.open(CACHE).then((c) => c.put(e.request, clone));
-          return resp;
-        })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
-
-  // App shell: stale-while-revalidate.
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const fetchPromise = fetch(e.request)
-        .then((resp) => {
-          if (resp && resp.status === 200 && resp.type !== 'opaque') {
-            const clone = resp.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, clone));
-          }
-          return resp;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+        }
+        return resp;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
