@@ -1,6 +1,15 @@
-// PCT Tracker — main app
-// Loads PCT_TRAIL_SEGMENTS (trail-data.js) and PCT_WAYPOINTS / PCT_AIRPORTS (waypoints-data.js)
-// then renders an interactive Leaflet map.
+// FILE: app.js
+// PURPOSE: Main client for the AE-PCT tracker — boots Leaflet, draws the trail
+//   + resupply / road waypoints + airports + weekend pills + expected/actual
+//   position markers, and wires up the table view, mobile drawer, and water layer.
+// SOURCE: Reads window.PCT_TRAIL_SEGMENTS, PCT_WAYPOINTS, PCT_AIRPORTS,
+//   PCT_PROGRESS, PCT_WATER_WAYPOINTS, PCT_WATER_LOADER from data/*.js.
+// CAVEATS:
+//   - Position interpolation is proportional between book-mile and GPX cumulative
+//     mile (the two diverge by ~10%); drift up to a couple miles mid-trail.
+//   - "Plan day 1" is hard-coded to 2026-05-13 (Athena's start date).
+//   - Service worker discipline lives in sw.js — bump its CACHE constant if you
+//     change any file in the app shell.
 
 (function () {
 'use strict';
@@ -18,6 +27,7 @@ const chk = (sel, fallback = true) => {
 const fmtDate = (d) => d.toISOString().slice(0,10);
 const parseDate = (s) => { const d = new Date(s + 'T00:00:00'); return isNaN(d) ? null : d; };
 const dayDiff = (a, b) => Math.round((a - b) / 86400000);
+const todayMidnight = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 
 function haversineMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.7613;
@@ -286,7 +296,7 @@ function drawWaypoints() {
   layers.waypoints.clearLayers();
   const last = lastReported();
   const passedThroughMile = last ? last.mile : -1;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = todayMidnight();
   const exp = expectedMileForDate(today);
   for (const wp of window.PCT_WAYPOINTS) {
     const [lat, lon] = posAtBookMile(wp.mile);
@@ -381,12 +391,13 @@ function drawWeekends() {
   const passedMile = last ? last.mile : -1;
   for (const r of schedule) {
     if (!r.isWeekend) continue;
-    if (r.mile <= 0 || r.mile >= BOOK_TRAIL_MILES) continue;
-    const [lat, lon] = posAtBookMile(r.mile);
-    const isPassed = r.mile <= passedMile;
+    const mile = r.endMile;
+    if (mile == null || mile <= 0 || mile >= BOOK_TRAIL_MILES) continue;
+    const [lat, lon] = posAtBookMile(mile);
+    const isPassed = mile <= passedMile;
     const dowLabel = DOW_SHORT[r.dow];
     const dateLabel = r.date.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
-    const upcoming = r.upcoming;
+    const road = r.closestRoad;
     const icon = L.divIcon({
       className: 'we-icon',
       iconSize: [44, 18], iconAnchor: [22, 9],
@@ -402,26 +413,31 @@ function drawWeekends() {
     m.bindPopup(`<h3>${dowLabel} ${r.date.toLocaleDateString('en-GB',{day:'numeric',month:'long'})}</h3>
       <dl class="kv">
         <dt>Plan day</dt><dd>${r.day} of 130</dd>
-        <dt>Expected mile</dt><dd>${r.mile.toFixed(1)}</dd>
-        <dt>Next stop</dt><dd>${upcoming ? upcoming.name + ' (mi ' + upcoming.mile + ')' : '—'}</dd>
-        <dt>Airport</dt><dd>${upcoming ? upcoming.airport + ' · ' + upcoming.drive : '—'}</dd>
+        <dt>Expected mile</dt><dd>${mile.toFixed(1)}</dd>
+        <dt>Next road</dt><dd>${road ? escapeHtml(road.name) + ' (mi ' + road.mile + ')' : '—'}</dd>
+        <dt>Airport</dt><dd>${road ? road.airport + ' · ' + escapeHtml(road.drive) : '—'}</dd>
       </dl>`);
     m.addTo(layers.weekends);
   }
 }
 
+// 20px filled dot with a white outer ring + soft outer glow — used for both
+// the expected and actual position markers. Color is the only difference.
+function ringedDotIcon(color, className) {
+  return L.divIcon({
+    className,
+    iconSize: [20, 20], iconAnchor: [10, 10],
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 2px ${color}66, 0 1px 4px rgba(0,0,0,0.5)"></div>`,
+  });
+}
+
 function drawExpected() {
   layers.expected.clearLayers();
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = todayMidnight();
   const exp = expectedMileForDate(today);
   if (exp.mile <= 0 || exp.mile >= BOOK_TRAIL_MILES) return;
   const [lat, lon] = posAtBookMile(exp.mile);
-  const icon = L.divIcon({
-    className: 'exp-icon',
-    iconSize: [20, 20], iconAnchor: [10, 10],
-    html: `<div style="width:20px;height:20px;border-radius:50%;background:${COLOR.expected};border:3px solid white;box-shadow:0 0 0 2px ${COLOR.expected}66, 0 1px 4px rgba(0,0,0,0.5)"></div>`,
-  });
-  const m = L.marker([lat, lon], { icon });
+  const m = L.marker([lat, lon], { icon: ringedDotIcon(COLOR.expected, 'exp-icon') });
   m.bindPopup(`<h3>Expected position today</h3>
     <dl class="kv">
       <dt>Date</dt><dd>${today.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</dd>
@@ -436,15 +452,10 @@ function drawActual() {
   const last = lastReported();
   if (!last) return;
   const [lat, lon] = posAtBookMile(last.mile);
-  const icon = L.divIcon({
-    className: 'act-icon',
-    iconSize: [20, 20], iconAnchor: [10, 10],
-    html: `<div style="width:20px;height:20px;border-radius:50%;background:${COLOR.actual};border:3px solid white;box-shadow:0 0 0 2px ${COLOR.actual}66, 0 1px 4px rgba(0,0,0,0.5)"></div>`,
-  });
   const lastDate = parseDate(last.date);
   const expectedOnThatDate = expectedMileForDate(lastDate).mile;
   const milesAhead = last.mile - expectedOnThatDate;
-  const m = L.marker([lat, lon], { icon });
+  const m = L.marker([lat, lon], { icon: ringedDotIcon(COLOR.actual, 'act-icon') });
   m.bindPopup(`<h3>Last reported — Athena</h3>
     <dl class="kv">
       <dt>Date</dt><dd>${lastDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</dd>
@@ -464,7 +475,8 @@ function lastReported() {
 
 function renderTodayCard() {
   const body = $('#today-body');
-  const today = new Date(); today.setHours(0,0,0,0);
+  if (!body) return;  // stale cache shell may be missing sidebar bits
+  const today = todayMidnight();
   const exp = expectedMileForDate(today);
   const last = lastReported();
 
@@ -502,6 +514,7 @@ function renderTodayCard() {
 
 function renderProgressList() {
   const body = $('#progress-body');
+  if (!body) return;
   const arr = loadProgress();
   if (!arr.length) {
     body.innerHTML = '<div class="muted">No updates yet.</div>';
@@ -517,12 +530,13 @@ function renderProgressList() {
 }
 
 function renderWaypointList() {
-  const search = $('#wp-search').value.toLowerCase();
+  const ol = $('#wp-list');
+  if (!ol) return;
+  const search = ($('#wp-search')?.value || '').toLowerCase();
   const last = lastReported();
   const passedMile = last ? last.mile : -1;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = todayMidnight();
   const exp = expectedMileForDate(today);
-  const ol = $('#wp-list');
   ol.innerHTML = window.PCT_WAYPOINTS
     .filter(w => !search || w.name.toLowerCase().includes(search) || w.airport.toLowerCase().includes(search))
     .map(wp => {
@@ -549,12 +563,13 @@ function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
 // ---------- schedule table ----------
 function renderScheduleTable() {
   const tbody = document.querySelector('#schedule-table tbody');
+  if (!tbody) return;
   const weekendsOnly = chk('#t-weekends-only', false);
   const resupplyOnly = chk('#t-resupply-only', false);
   const last = lastReported();
   const passedMile = last ? last.mile : -1;
   const lastDate = last ? parseDate(last.date) : null;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = todayMidnight();
 
   const schedule = buildDailySchedule();
   const filtered = schedule.filter(r => {
@@ -632,7 +647,8 @@ function renderScheduleTable() {
 
   // summary
   const weekends = schedule.filter(r => r.isWeekend).length;
-  $('#table-summary').textContent = `${filtered.length} of ${schedule.length} days · ${weekends} weekend days highlighted`;
+  const summary = $('#table-summary');
+  if (summary) summary.textContent = `${filtered.length} of ${schedule.length} days · ${weekends} weekend days highlighted`;
 
   // click a row to jump map to that location
   tbody.querySelectorAll('tr[data-mile]').forEach(tr => {

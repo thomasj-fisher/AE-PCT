@@ -1,7 +1,11 @@
-// Service worker for Athena's PCT tracker
-// Network-first strategy for the app shell: when online, the latest version
-// always wins (no stale HTML/JS mismatches). Cache is the offline fallback.
-// Tile requests are never intercepted — they always go to network.
+// FILE: sw.js
+// PURPOSE: PWA service worker — caches the app shell so the page opens with no
+//   signal. Tile servers are never intercepted (always network).
+// SOURCE: —
+// CAVEATS:
+//   - Strategy is network-first for same-origin GETs; cache is offline fallback.
+//   - Bump the CACHE constant on every shell file change. Old caches get pruned
+//     in activate. iOS Safari may need TWO reloads for the new SW to take over.
 
 const CACHE = 'pct-tracker-v3';
 

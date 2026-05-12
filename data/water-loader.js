@@ -1,10 +1,15 @@
-// Fetches the seven PCT Water Report Google Sheets (pctwater.com) as CSV,
-// parses out water-source rows, joins to Halfmile waypoint coordinates,
-// and caches the result in localStorage for 24h.
-// Falls back to mile-based positioning for waypoints not in the lookup.
-//
-// Data: PCT Water Report (pctwater.com) — free crowdsourced compilation; no warranty.
-// Coordinates: Halfmile's PCT Maps (pctmap.net) — Copyright 2020 Halfmile Media.
+// FILE: data/water-loader.js
+// PURPOSE: Runtime fetch of the seven PCT Water Report Google Sheets, parse,
+//   join each row to a Halfmile waypoint coordinate, cache in localStorage 24h.
+//   Exposes window.PCT_WATER_LOADER.load() → { data, fresh, stale?, error?, ts }.
+// SOURCE:
+//   - Reports: PCT Water Report (pctwater.com) — free crowdsourced; no warranty.
+//   - Coordinates joined in app.js from PCT_WATER_WAYPOINTS (Halfmile, see
+//     data/water-waypoints.js).
+// CAVEATS:
+//   - First page load with the water layer ON needs network access.
+//   - Subsequent loads within 24h use the localStorage cache.
+//   - Waypoints not in the coord lookup fall back to proportional mile-position.
 
 window.PCT_WATER_LOADER = (function () {
   'use strict';
