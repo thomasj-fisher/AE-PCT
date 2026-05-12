@@ -1,6 +1,15 @@
-// PCT Tracker — main app
-// Loads PCT_TRAIL_SEGMENTS (trail-data.js) and PCT_WAYPOINTS / PCT_AIRPORTS (waypoints-data.js)
-// then renders an interactive Leaflet map.
+// FILE: app.js
+// PURPOSE: Main client for the AE-PCT tracker — boots Leaflet, draws the trail
+//   + resupply / road waypoints + airports + weekend pills + expected/actual
+//   position markers, and wires up the table view, mobile drawer, and water layer.
+// SOURCE: Reads window.PCT_TRAIL_SEGMENTS, PCT_WAYPOINTS, PCT_AIRPORTS,
+//   PCT_PROGRESS, PCT_WATER_WAYPOINTS, PCT_WATER_LOADER from data/*.js.
+// CAVEATS:
+//   - Position interpolation is proportional between book-mile and GPX cumulative
+//     mile (the two diverge by ~10%); drift up to a couple miles mid-trail.
+//   - "Plan day 1" is hard-coded to 2026-05-13 (Athena's start date).
+//   - Service worker discipline lives in sw.js — bump its CACHE constant if you
+//     change any file in the app shell.
 
 (function () {
 'use strict';

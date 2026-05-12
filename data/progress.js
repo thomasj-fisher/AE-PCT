@@ -1,7 +1,11 @@
-// Athena's actual progress along the PCT.
-// Edited by Claude Code when Thomas reports new updates from the trail.
-// Each entry: { date: 'YYYY-MM-DD', mile: <book mile>, loc: 'optional note' }
-// Order doesn't matter — the app sorts by date. Most-recent entry drives "last reported".
+// FILE: data/progress.js
+// PURPOSE: Athena's actual trail progress. Hand-edited by Claude when Thomas
+//   relays an update; the most recent entry drives the "last reported" marker.
+// SOURCE: Thomas, as relayed from Athena.
+// CAVEATS:
+//   - Each entry: { date: 'YYYY-MM-DD', mile: <book mile>, loc: 'optional note' }
+//   - Order on disk doesn't matter; the app sorts by date at load.
+//   - SW is network-first on this file so a push to main lands on next refresh.
 
 window.PCT_PROGRESS = [
   // Example (delete or replace when first real update arrives):

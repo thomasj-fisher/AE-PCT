@@ -1,3 +1,13 @@
+# FILE: scripts/build-trail-data.ps1
+# PURPOSE: Decimates the 101 Outdooractive GPX stages into a single
+#   data/trail-data.js array of [lat, lon] pairs for the Leaflet client.
+# SOURCE: gpx/*.gpx — Outdooractive PCT stage files (free hiker use).
+# CAVEATS:
+#   - Decimation ratio = 5 (keep every 5th point). Tune $decimation if needed.
+#   - Coordinates rounded to 5 decimal places (~1 m precision).
+#   - GPX total length comes out ~2,392 mi vs the canonical 2,655.2 mi; the
+#     client compensates via proportional scaling. See app.js / trailScale.
+
 $ErrorActionPreference = 'Stop'
 $gpxDir = Join-Path $PSScriptRoot '..\gpx'
 $outFile = Join-Path $PSScriptRoot '..\data\trail-data.js'

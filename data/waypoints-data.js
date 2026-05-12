@@ -1,9 +1,18 @@
-// Resupply / road-access points along the PCT.
-// Mile = PCT southbound→northbound cumulative miles (from Yogi's "Hiking the PCT").
-// expectedDate is Athena's plan: 130-day schedule shifted +3 days (start 13 May 2026).
-// AIRPORTS BELOW ARE ORD DIRECT ONLY. Drive times reflect that — some are long.
-// Resupply detail paraphrased from Halfmile's PCT Resupply Notes PDF (Nov 2023).
-// Numbers are car-route estimates; verify before booking.
+// FILE: data/waypoints-data.js
+// PURPOSE: Hand-curated PCT resupply / road-access waypoints + the airport
+//   reference set. Drives marker placement, popup detail, table rows, and the
+//   day-by-day schedule.
+// SOURCE:
+//   - Mile + 130-day schedule: Yogi's "Hiking the Pacific Crest Trail"
+//   - Resupply detail (postOffice / lodging / groceries / shuttle / notes):
+//     Halfmile's PCT Resupply Notes PDF (Nov 2023), paraphrased — see HM_SRC.
+//   - Airport coords + ORD direct-flight info: hand-typed from public schedules.
+// CAVEATS:
+//   - Airports here are ONLY those with ORD direct service. Drive times are
+//     car-route estimates; verify before booking.
+//   - Resupply hours/business status reflect 2023; some will be stale.
+//   - Day 1 "Cleef" entry has no resupply block (placeholder until exact mile
+//     confirmed). San Gorgonio Pass / I-10 has no Halfmile entry.
 
 const HM_SRC = {
   label: 'Halfmile resupply notes (Nov 2023)',

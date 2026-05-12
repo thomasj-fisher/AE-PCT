@@ -1,7 +1,13 @@
-# Build water-waypoint coordinate lookup from Halfmile's free GPX downloads.
-# Source: https://pctmap.net/gps/ (Copyright Halfmile Media — free personal use)
-# Run from anywhere. Outputs data/water-waypoints.js with all waypoints whose
-# <sym> indicates water, plus names matching common water prefixes.
+# FILE: scripts/build-water-waypoints.ps1
+# PURPOSE: Downloads Halfmile's four GPX zips and emits data/water-waypoints.js
+#   keyed by waypoint name. The keys match the `Waypoint` column in pctwater.com's
+#   sheets so the runtime loader can join coords to live water reports.
+# SOURCE: https://pctmap.net/gps/ — Halfmile's PCT Maps, Copyright 2020 Halfmile
+#   Media (free personal use).
+# CAVEATS:
+#   - Embeds ALL Halfmile waypoints — pctwater also references descriptive
+#     landmark names (MexBorder, PCTAID_1208, RD0009B), not just WR/WACS/WRCS.
+#   - Output is ~680 KB; gzipped over HTTP ~150–200 KB.
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
