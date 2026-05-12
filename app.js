@@ -9,6 +9,12 @@ const BOOK_TRAIL_MILES = 2655.2;
 
 // ---------- helpers ----------
 const $ = (sel) => document.querySelector(sel);
+// Safe checkbox lookup — defaults to true if element is missing so a stale-cached
+// shell doesn't make layers disappear.
+const chk = (sel, fallback = true) => {
+  const el = document.querySelector(sel);
+  return el ? !!el.checked : fallback;
+};
 const fmtDate = (d) => d.toISOString().slice(0,10);
 const parseDate = (s) => { const d = new Date(s + 'T00:00:00'); return isNaN(d) ? null : d; };
 const dayDiff = (a, b) => Math.round((a - b) / 86400000);
@@ -543,8 +549,8 @@ function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&l
 // ---------- schedule table ----------
 function renderScheduleTable() {
   const tbody = document.querySelector('#schedule-table tbody');
-  const weekendsOnly = $('#t-weekends-only').checked;
-  const resupplyOnly = $('#t-resupply-only').checked;
+  const weekendsOnly = chk('#t-weekends-only', false);
+  const resupplyOnly = chk('#t-resupply-only', false);
   const last = lastReported();
   const passedMile = last ? last.mile : -1;
   const lastDate = last ? parseDate(last.date) : null;
@@ -664,17 +670,17 @@ function switchTab(name) {
 
 // ---------- main render ----------
 function render() {
-  // visibility based on filter checkboxes
-  toggleLayer(layers.trail,    $('#f-trail').checked);
-  toggleLayer(layers.covered,  $('#f-progress-line').checked);
-  toggleLayer(layers.waypoints, $('#f-waypoints').checked);
-  toggleLayer(layers.weekends, $('#f-weekends').checked);
-  toggleLayer(layers.airports, $('#f-airports').checked);
-  toggleLayer(layers.expected, $('#f-expected').checked);
-  toggleLayer(layers.actual,   $('#f-actual').checked);
+  // visibility based on filter checkboxes; default ON if checkbox not in DOM
+  toggleLayer(layers.trail,     chk('#f-trail'));
+  toggleLayer(layers.covered,   chk('#f-progress-line'));
+  toggleLayer(layers.waypoints, chk('#f-waypoints'));
+  toggleLayer(layers.weekends,  chk('#f-weekends'));
+  toggleLayer(layers.airports,  chk('#f-airports'));
+  toggleLayer(layers.expected,  chk('#f-expected'));
+  toggleLayer(layers.actual,    chk('#f-actual'));
 
-  // Water layer: lazy-load on first show
-  const wantWater = $('#f-water').checked;
+  // Water layer: lazy-load on first show; default OFF
+  const wantWater = chk('#f-water', false);
   toggleLayer(layers.water, wantWater);
   if (wantWater && !waterState.loaded && !waterState.loading) {
     ensureWaterLoaded();
@@ -701,12 +707,12 @@ function wireUi() {
   document.querySelectorAll('#filter-card input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', render);
   });
-  $('#wp-search').addEventListener('input', renderWaypointList);
+  $('#wp-search')?.addEventListener('input', renderWaypointList);
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
-  $('#t-weekends-only').addEventListener('change', renderScheduleTable);
-  $('#t-resupply-only').addEventListener('change', renderScheduleTable);
+  $('#t-weekends-only')?.addEventListener('change', renderScheduleTable);
+  $('#t-resupply-only')?.addEventListener('change', renderScheduleTable);
   wireMobileDrawer();
 }
 
@@ -714,6 +720,7 @@ function wireMobileDrawer() {
   const sidebar = $('#sidebar');
   const backdrop = $('#sidebar-backdrop');
   const toggle = $('#menu-toggle');
+  if (!sidebar || !backdrop || !toggle) return;  // older cached shell — skip
   const open = () => {
     sidebar.classList.add('open');
     backdrop.removeAttribute('hidden');
@@ -730,11 +737,9 @@ function wireMobileDrawer() {
     sidebar.classList.contains('open') ? close() : open();
   });
   backdrop.addEventListener('click', close);
-  // Close when picking a waypoint or table row (we navigate the map under it)
-  $('#wp-list').addEventListener('click', (e) => {
+  $('#wp-list')?.addEventListener('click', (e) => {
     if (e.target.closest('li[data-mile]') && sidebar.classList.contains('open')) close();
   });
-  // Close on Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
   });
@@ -749,10 +754,33 @@ function init() {
   drawAirports();
   wireUi();
   render();
-  // fit map to trail bounds
+  // fit map to trail bounds, then recompute size after layout settles
   const bounds = L.latLngBounds(trailPts);
   map.fitBounds(bounds, { padding: [20, 20] });
+  // Leaflet occasionally sees a 0-height container during first paint on iOS;
+  // force a recompute once the browser has a real layout
+  setTimeout(() => { map.invalidateSize(); map.fitBounds(bounds, { padding: [20, 20] }); }, 200);
 }
+
+// Visible error overlay — when something throws, the user sees what and can
+// screenshot it. Beats a blank map on a phone.
+function showError(msg) {
+  let div = document.getElementById('err-overlay');
+  if (!div) {
+    div = document.createElement('div');
+    div.id = 'err-overlay';
+    div.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;padding:8px 10px;background:#ef4444;color:#fff;font:11px/1.35 -apple-system,Segoe UI,sans-serif;border-radius:6px;z-index:9999;max-height:40vh;overflow:auto;box-shadow:0 4px 14px rgba(0,0,0,.4)';
+    div.addEventListener('click', () => div.remove());
+    document.body.appendChild(div);
+  }
+  div.textContent = msg + ' — tap to dismiss';
+}
+window.addEventListener('error', (e) => {
+  showError('JS error: ' + (e.message || 'unknown') + ' @ ' + (e.filename || '?') + ':' + (e.lineno || '?'));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showError('Promise rejected: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
