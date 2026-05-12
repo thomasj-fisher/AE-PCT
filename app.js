@@ -381,12 +381,13 @@ function drawWeekends() {
   const passedMile = last ? last.mile : -1;
   for (const r of schedule) {
     if (!r.isWeekend) continue;
-    if (r.mile <= 0 || r.mile >= BOOK_TRAIL_MILES) continue;
-    const [lat, lon] = posAtBookMile(r.mile);
-    const isPassed = r.mile <= passedMile;
+    const mile = r.endMile;
+    if (mile == null || mile <= 0 || mile >= BOOK_TRAIL_MILES) continue;
+    const [lat, lon] = posAtBookMile(mile);
+    const isPassed = mile <= passedMile;
     const dowLabel = DOW_SHORT[r.dow];
     const dateLabel = r.date.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
-    const upcoming = r.upcoming;
+    const road = r.closestRoad;
     const icon = L.divIcon({
       className: 'we-icon',
       iconSize: [44, 18], iconAnchor: [22, 9],
@@ -402,9 +403,9 @@ function drawWeekends() {
     m.bindPopup(`<h3>${dowLabel} ${r.date.toLocaleDateString('en-GB',{day:'numeric',month:'long'})}</h3>
       <dl class="kv">
         <dt>Plan day</dt><dd>${r.day} of 130</dd>
-        <dt>Expected mile</dt><dd>${r.mile.toFixed(1)}</dd>
-        <dt>Next stop</dt><dd>${upcoming ? upcoming.name + ' (mi ' + upcoming.mile + ')' : '—'}</dd>
-        <dt>Airport</dt><dd>${upcoming ? upcoming.airport + ' · ' + upcoming.drive : '—'}</dd>
+        <dt>Expected mile</dt><dd>${mile.toFixed(1)}</dd>
+        <dt>Next road</dt><dd>${road ? escapeHtml(road.name) + ' (mi ' + road.mile + ')' : '—'}</dd>
+        <dt>Airport</dt><dd>${road ? road.airport + ' · ' + escapeHtml(road.drive) : '—'}</dd>
       </dl>`);
     m.addTo(layers.weekends);
   }
