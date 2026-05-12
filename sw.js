@@ -3,7 +3,7 @@
 // Tile requests bypass the cache (always go to network).
 // data/progress.js is network-first so Athena sees latest updates after refresh.
 
-const CACHE = 'pct-tracker-v1';
+const CACHE = 'pct-tracker-v2';
 
 const APP_SHELL = [
   './',
@@ -14,6 +14,8 @@ const APP_SHELL = [
   './icon.svg',
   './data/trail-data.js',
   './data/waypoints-data.js',
+  './data/water-waypoints.js',
+  './data/water-loader.js',
   './data/progress.js',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

@@ -130,6 +130,7 @@ function setupMap() {
   layers.covered = L.layerGroup().addTo(map);
   layers.weekends = L.layerGroup().addTo(map);
   layers.waypoints = L.layerGroup().addTo(map);
+  layers.water = L.layerGroup();
   layers.airports = L.layerGroup().addTo(map);
   layers.expected = L.layerGroup().addTo(map);
   layers.actual = L.layerGroup().addTo(map);
@@ -292,6 +293,65 @@ function drawWaypoints() {
     m.addTo(layers.waypoints);
     m._wp = wp;
   }
+}
+
+// ---------- water sources ----------
+let waterState = { loaded: false, loading: false, lastError: null, fresh: false, ts: 0, count: 0 };
+
+async function ensureWaterLoaded() {
+  if (waterState.loaded || waterState.loading) return waterState;
+  waterState.loading = true;
+  try {
+    const result = await window.PCT_WATER_LOADER.load();
+    waterState.loaded = true;
+    waterState.fresh = !!result.fresh;
+    waterState.ts = result.ts || 0;
+    waterState.lastError = result.error || null;
+    drawWater(result.data);
+    waterState.count = result.data.length;
+  } catch (e) {
+    waterState.lastError = String(e);
+  } finally {
+    waterState.loading = false;
+  }
+  return waterState;
+}
+
+function drawWater(reports) {
+  layers.water.clearLayers();
+  const coords = window.PCT_WATER_WAYPOINTS || {};
+  // Group reports by waypoint, keep the most recent report per waypoint.
+  const byWp = new Map();
+  for (const r of reports) {
+    const prev = byWp.get(r.waypoint);
+    if (!prev || (r.date && r.date > prev.date)) byWp.set(r.waypoint, r);
+  }
+  let plotted = 0;
+  for (const [wpName, r] of byWp.entries()) {
+    let lat, lon;
+    const c = coords[wpName];
+    if (c) { lat = c.lat; lon = c.lon; }
+    else {
+      // Fallback: place at mile position along the trail
+      const pos = posAtBookMile(r.mile);
+      if (!pos) continue;
+      [lat, lon] = pos;
+    }
+    const dot = L.circleMarker([lat, lon], {
+      radius: 4, color: '#0891b2', weight: 1, fillColor: '#22d3ee', fillOpacity: 0.85,
+    });
+    dot.bindPopup(`<h3>Water · ${escapeHtml(wpName)}</h3>
+      <dl class="kv">
+        <dt>Mile</dt><dd>${r.mile.toFixed(1)}</dd>
+        ${r.location ? `<dt>Location</dt><dd>${escapeHtml(r.location)}</dd>` : ''}
+        ${r.report   ? `<dt>Report</dt><dd>${escapeHtml(r.report)}</dd>` : ''}
+        ${r.date     ? `<dt>Reported</dt><dd>${escapeHtml(r.date)}${r.reporter ? ' · ' + escapeHtml(r.reporter) : ''}</dd>` : ''}
+      </dl>
+      <p class="popup-src">Source: <a href="https://pctwater.com/" target="_blank" rel="noopener">PCT Water Report</a> · coords <a href="https://pctmap.net/gps/" target="_blank" rel="noopener">Halfmile</a></p>`);
+    dot.addTo(layers.water);
+    plotted++;
+  }
+  waterState.count = plotted;
 }
 
 function drawAirports() {
@@ -612,6 +672,13 @@ function render() {
   toggleLayer(layers.airports, $('#f-airports').checked);
   toggleLayer(layers.expected, $('#f-expected').checked);
   toggleLayer(layers.actual,   $('#f-actual').checked);
+
+  // Water layer: lazy-load on first show
+  const wantWater = $('#f-water').checked;
+  toggleLayer(layers.water, wantWater);
+  if (wantWater && !waterState.loaded && !waterState.loading) {
+    ensureWaterLoaded();
+  }
 
   drawCovered();
   drawWeekends();

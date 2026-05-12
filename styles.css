@@ -219,6 +219,7 @@ button#export-btn, button#import-btn {
 .dot.covered  { background: var(--covered); }
 .dot.resupply { width: 12px; height: 12px; border-radius: 50%; background: var(--resupply); }
 .dot.weekend  { width: 12px; height: 12px; border-radius: 5px; background: var(--expected); }
+.dot.water    { width: 12px; height: 12px; border-radius: 50%; background: var(--airport); border: 1px solid #67e8f9; }
 .dot.airport  { width: 12px; height: 12px; border-radius: 50%; background: var(--airport); }
 .dot.expected { width: 12px; height: 12px; border-radius: 50%; background: var(--expected); border: 2px solid white; }
 .dot.actual   { width: 12px; height: 12px; border-radius: 50%; background: var(--actual); border: 2px solid white; }
